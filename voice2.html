@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn Your Letters!</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background-color: #E0F7F6;  /* Light teal background */
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            padding: 20px;
+        }
+        .letters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .letter-container {
+            cursor: pointer;
+            user-select: none;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .letter-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            background-color: #B2EBE9;  /* Light teal on hover */
+        }
+        .letter {
+            font-size: 70px;
+            color: #20B2AA;  /* Light sea green - a brighter, lighter teal */
+            text-transform: lowercase;  /* Ensure lowercase */
+        }
+        .letter-container.disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+        .letter-container.disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: white;
+        }
+        .animate__bounce {
+            animation-duration: 1s;
+        }
+        .animate__bounce.word {
+            animation-iteration-count: 3;  /* Three bounces only for completed words */
+        }
+        h1 {
+            text-align: center;
+            color: #006666;  /* Darker teal for header */
+            margin-bottom: 30px;
+        }
+        .navigation {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .navigation a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #E74C3C;  /* Red color for phonics link */
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .navigation a:hover {
+            background-color: #C0392B;  /* Darker red on hover */
+        }
+        .word-builder {
+            text-align: center;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 600px;
+        }
+        .current-word {
+            font-size: 48px;
+            min-height: 60px;
+            margin: 20px 0;
+            color: #20B2AA;  /* Matching light sea green for current word */
+            letter-spacing: 4px;
+        }
+        .word-buttons {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #008B8B;  /* Teal for buttons */
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #006666;  /* Darker teal on hover */
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: default;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="navigation">
+        <a href="/">Switch to Word Building</a>
+    </div>
+    <h1>Let's Learn Our Letters!</h1>
+
+    <div class="word-builder">
+        <div class="current-word" id="currentWord"></div>
+        <div class="word-buttons">
+            <button onclick="clearWord()">Clear</button>
+            <button onclick="checkWord()">Say Word</button>
+        </div>
+    </div>
+
+    <div class="letters-grid">
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script>
+        // Define the alphabet and available sounds
+        const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+        const availableSounds = alphabet; // All letters are available
+
+        // Define valid words that can be made with our letters
+        const validWords = [
+            // 3 letter words - Grouped by themes
+            // Animals
+            'ant', 'bat', 'bee', 'cat', 'cow', 'dog', 'fox', 'hen', 'owl', 'pig', 'rat',
+
+            // Colors
+            'red', 'tan',
+
+            // Actions
+            'cry', 'dig', 'eat', 'fly', 'get', 'hop', 'hug', 'jog', 'nap', 'pat', 'run',
+            'sit', 'tap', 'try', 'use', 'win',
+
+            // Body Parts
+            'arm', 'ear', 'eye', 'leg', 'lip', 'toe',
+
+            // Nature
+            'sun', 'sky', 'sea', 'mud', 'fog', 'ice',
+
+            // Objects
+            'bag', 'bed', 'box', 'bus', 'cap', 'cup', 'hat', 'jar', 'key', 'lid', 'map',
+            'net', 'pan', 'pen', 'pin', 'pot', 'rug', 'tag', 'tin', 'toy', 'tub', 'van',
+            'wax', 'zip',
+
+            // Family & People
+            'dad', 'mum', 'boy', 'kid', 'man', 'pal',
+
+            // Common Words
+            'and', 'but', 'can', 'did', 'for', 'got', 'had', 'has', 'her', 'him', 'his',
+            'how', 'new', 'not', 'now', 'old', 'one', 'our', 'out', 'she', 'the', 'too',
+            'two', 'was', 'who', 'why', 'yes', 'you',
+
+            // 4 letter words - Grouped by themes
+            // Animals & Pets
+            'bear', 'bird', 'calf', 'crab', 'deer', 'dove', 'duck', 'fish', 'frog', 'goat',
+            'kiwi', 'lamb', 'lion', 'pony', 'seal', 'swan', 'wolf', 'worm', 'zebra',
+
+            // Toys & Play
+            'ball', 'bike', 'doll', 'game', 'kite', 'lego', 'play', 'ring', 'rope', 'sing',
+            'swim', 'swing', 'toys',
+
+            // Colors
+            'blue', 'gold', 'pink', 'teal',
+
+            // Food & Drinks
+            'cake', 'corn', 'eggs', 'fish', 'food', 'jams', 'meal', 'meat', 'milk', 'mint',
+            'pear', 'rice', 'salt', 'soup',
+
+            // Clothes
+            'belt', 'boot', 'coat', 'hat', 'sock', 'vest',
+
+            // Body Parts
+            'face', 'feet', 'hair', 'hand', 'head', 'knee', 'neck', 'nose', 'tail',
+
+            // Nature & Weather
+            'leaf', 'moon', 'rain', 'rock', 'sand', 'seed', 'snow', 'star', 'tree', 'wind',
+
+            // House & Furniture
+            'bath', 'bed', 'book', 'bowl', 'chair', 'desk', 'dish', 'door', 'home', 'lamp',
+            'room', 'roof', 'seat', 'sink', 'sofa', 'wall',
+
+            // School Items
+            'book', 'desk', 'glue', 'page', 'pen', 'tape',
+
+            // Vehicles
+            'bike', 'boat', 'bus', 'car', 'ship', 'train',
+
+            // Family & People
+            'aunt', 'baby', 'girl', 'gran', 'mum', 'papa',
+
+            // Feelings
+            'calm', 'cool', 'glad', 'good', 'happy', 'kind', 'love', 'nice', 'sad',
+
+            // Actions
+            'bake', 'clap', 'draw', 'drop', 'fall', 'give', 'help', 'hide', 'hold', 'jump',
+            'kick', 'kiss', 'look', 'make', 'move', 'pull', 'push', 'read', 'ride', 'roll',
+            'run', 'skip', 'slip', 'stop', 'take', 'talk', 'walk', 'wave', 'wish',
+
+            // Time
+            'date', 'day', 'time', 'week', 'year',
+
+            // Common Words
+            'also', 'been', 'best', 'both', 'done', 'each', 'else', 'even', 'ever', 'from',
+            'have', 'here', 'just', 'like', 'more', 'most', 'much', 'must', 'next', 'only',
+            'over', 'same', 'such', 'than', 'that', 'them', 'then', 'they', 'this', 'very',
+            'want', 'well', 'were', 'what', 'when', 'with', 'your'
+        ];
+
+        // Get all unique letters used in valid words
+        const lettersInWords = new Set(validWords.join('').split(''));
+
+        // Initialize speech synthesis
+        const speech = window.speechSynthesis;
+        let selectedVoice = null;
+
+        // Try to find a young female voice
+        speech.onvoiceschanged = () => {
+            const voices = speech.getVoices();
+            console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+            
+            // Try to find a female voice in this order:
+            selectedVoice = voices.find(voice => voice.lang === 'en-AU' && voice.name.toLowerCase().includes('female')) ||
+                          voices.find(voice => voice.lang.startsWith('en-') && voice.name.toLowerCase().includes('female')) ||
+                          voices.find(voice => voice.name.toLowerCase().includes('female')) ||
+                          voices.find(voice => voice.lang.startsWith('en-')) ||
+                          voices[0];
+            
+            console.log('Selected voice:', selectedVoice ? selectedVoice.name : 'Default');
+        };
+
+        // Current word building state
+        let currentWord = '';
+        const currentWordDisplay = document.getElementById('currentWord');
+
+        function canFormValidWord(currentStr, letter) {
+            const potentialWord = currentStr + letter;
+            return validWords.some(word => word.startsWith(potentialWord));
+        }
+
+        function updateAvailableLetters() {
+            alphabet.forEach(letter => {
+                const letterContainer = document.querySelector(`#letter-${letter}`).parentElement;
+                const hasSound = availableSounds.includes(letter);
+                const usedInWords = lettersInWords.has(letter);
+                
+                const shouldDisable = !hasSound || !usedInWords || !canFormValidWord(currentWord, letter);
+                letterContainer.className = `letter-container ${shouldDisable ? 'disabled' : ''}`;
+            });
+        }
+
+        function addLetterToWord(letter) {
+            if (currentWord.length < 4) {
+                currentWord += letter;
+                currentWordDisplay.textContent = currentWord.toLowerCase();
+                updateAvailableLetters();
+                
+                // Check if the current word is valid after adding the letter
+                if (validWords.includes(currentWord)) {
+                    currentWordDisplay.classList.add('animate__animated', 'animate__bounce', 'word');
+                    const sayWordButton = document.querySelector('button[onclick="checkWord()"]');
+                    sayWordButton.classList.add('pulse');
+                    setTimeout(() => {
+                        currentWordDisplay.classList.remove('animate__animated', 'animate__bounce', 'word');
+                    }, 3000);  // Wait for all three bounces to complete (3 * 1s = 3s)
+                }
+            }
+        }
+
+        function clearWord() {
+            currentWord = '';
+            currentWordDisplay.textContent = '';
+            updateAvailableLetters();
+            // Remove pulse animation from Say Word button
+            const sayWordButton = document.querySelector('button[onclick="checkWord()"]');
+            sayWordButton.classList.remove('pulse');
+        }
+
+        function checkWord() {
+            if (validWords.includes(currentWord)) {
+                // Animate the word
+                currentWordDisplay.classList.add('animate__animated', 'animate__bounce', 'word');
+                
+                // Speak the word
+                const utterance = new SpeechSynthesisUtterance(currentWord);
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                utterance.rate = 1.0;      // Normal speed
+                utterance.pitch = 1.3;     // Higher pitch for young girl's voice
+                utterance.volume = 1.0;    // Full volume
+                speech.speak(utterance);
+
+                // Clear the word after animation and speech
+                setTimeout(() => {
+                    currentWordDisplay.classList.remove('animate__animated', 'animate__bounce', 'word');
+                    clearWord();
+                }, 3000);  // Wait for all three bounces to complete (3 * 1s = 3s)
+            }
+        }
+
+        // Create the grid of letters
+        const grid = document.querySelector('.letters-grid');
+        
+        alphabet.forEach(letter => {
+            const hasSound = availableSounds.includes(letter);
+            const usedInWords = lettersInWords.has(letter);
+            const container = document.createElement('div');
+            container.className = `letter-container ${(!hasSound || !usedInWords) ? 'disabled' : ''}`;
+            
+            const letterDiv = document.createElement('div');
+            letterDiv.className = 'letter';
+            letterDiv.id = `letter-${letter}`;
+            letterDiv.textContent = letter.toLowerCase();
+            
+            container.appendChild(letterDiv);
+            grid.appendChild(container);
+
+            if (hasSound) {
+                // Create sound for available letters
+                const sound = new Howl({
+                    src: [`/static/audio/Sienna's files/S ${letter}.m4a`],  // Use Sienna's audio files with correct prefix
+                    volume: 1.0,
+                    onload: () => console.log(`Sound loaded for ${letter}`),
+                    onloaderror: (id, err) => console.error(`Error loading sound for ${letter}:`, err),
+                    onplayerror: (id, err) => console.error(`Error playing sound for ${letter}:`, err)
+                });
+
+                container.addEventListener('click', () => {
+                    if (!container.classList.contains('disabled')) {
+                        console.log(`${letter} clicked`);
+                        sound.play();
+                        addLetterToWord(letter);
+                        
+                        // Single bounce for letter click
+                        letterDiv.classList.add('animate__animated', 'animate__bounce');
+                        setTimeout(() => {
+                            letterDiv.classList.remove('animate__animated', 'animate__bounce');
+                        }, 1000);
+                    }
+                });
+            }
+        });
+
+        // Initialize available letters
+        updateAvailableLetters();
+    </script>
+</body>
+</html>
